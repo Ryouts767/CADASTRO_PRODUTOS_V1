@@ -30,7 +30,7 @@ const listaDeProdutos = [];
 const formProduto = document.getElementById("produto-form")
 
 //Adicionar um escutador de eventos para quando o formulário for enviado
-formProdutos.addEventListener("submit",function(event){
+formProduto.addEventListener("submit",function(event){
     event.preventDefault();
 
  
