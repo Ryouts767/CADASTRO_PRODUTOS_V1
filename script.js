@@ -35,9 +35,9 @@ formProduto.addEventListener("submit",function(event){
 
  
 //1. captura dos valores digitados nos campos de input
-const nomeInput = document.getElementById("nome")
-const precoInput = document.getElementById("preco")
-const quantidadeInput = document.getElementById("quantidade")
+const nomeInput = document.getElementById("nome").value;
+const precoInput = document.getElementById("preco").value;
+const quantidadeInput = document.getElementById("quantidade").value;
 
 //2. Criar uma nova instância da classe Produto
 const novoProduto = new Produto(nomeInput,precoInput,quantidadeInput)
