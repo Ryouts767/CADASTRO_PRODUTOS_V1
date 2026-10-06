@@ -43,6 +43,18 @@ class Produto {
 //
 const listaDeProdutos = [];
 
+//FASE 2.1 Persistencia com localStorage
+//definir uma constante para evitar erros de digitação ao usarmos a chave do localStorage
+
+const CHAVE_STORAGE = "sistema_estoque_produto";
+
+//1. funçao para Salvar os dados no navegador
+
+function salvarNoLocalStorage(){
+    const listaEmTexto = JSON.stringify(listaDeProdutos);
+    localStorage.setItem(CHAVE_STORAGE, listaEmTexto);
+}
+
 //
 // FASE 3: Escuta de Eventos do DOM
 //
@@ -122,3 +134,66 @@ function removerProduto(index) {
     renderizarTabela();
     atualizarTotalEstoque();
 }
+
+//
+// FASE 5: Funções de Atualização e Renderização da Interface
+//
+
+// Função responsável por remover um único produto pelo índice
+function removerProduto(index) {
+    listaDeProdutos.splice(index, 1);
+
+    // 🆕 Salva a nova lista (sem o item removido) no localStorage
+    salvarNoLocalStorage();
+
+    atualizarInterface();
+}
+
+// Função responsável por calcular e renderizar o total geral em estoque
+function atualizarTotalEstoque() {
+    const total = listaDeProdutos.reduce((acc, produto) => {
+        return acc + produto.calcularSubtotal();
+    }, 0);
+
+    totalEstoqueEl.textContent = `Total em Estoque: R$ ${total.toFixed(2)}`;
+}
+
+// Função responsável por re-desenhar a tabela
+function renderizarTabela() {
+    const tabelaBody = document.querySelector("#tabela-produtos tbody");
+
+    tabelaBody.innerHTML = "";
+
+    listaDeProdutos.forEach((produto, index) => {
+        const linha = document.createElement("tr");
+
+        linha.innerHTML = `
+            <td>${produto.nome}</td>
+            <td>R$ ${produto.preco.toFixed(2)}</td>
+            <td>${produto.quantidade}</td>
+            <td>R$ ${produto.calcularSubtotal().toFixed(2)}</td>
+            <td>
+                <button class="btn-remover">Remover</button>
+            </td>
+        `;
+
+        const btnRemover = linha.querySelector(".btn-remover");
+        btnRemover.addEventListener("click", () => removerProduto(index));
+
+        tabelaBody.appendChild(linha);
+    });
+}
+
+// Função principal que sincroniza a tela com os dados
+function atualizarInterface() {
+    renderizarTabela();
+    atualizarTotalEstoque();
+}
+
+//
+// 🆕 FASE 6: Inicialização da Aplicação
+//
+// Ao carregar o script pela primeira vez, restaura os dados do localStorage
+// e atualiza a interface gráfica.
+carregarDoLocalStorage();
+atualizarInterface();
