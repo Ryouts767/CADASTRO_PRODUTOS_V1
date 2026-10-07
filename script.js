@@ -1,29 +1,26 @@
 //
-// FASE 1: modelagem dos dados (Classe Base)
+// FASE 1: Modelagem dos Dados (Classe Base com Encapsulamento e Validação)
 //
 class Produto {
-    // Novo: Desafio 1
     #preco;
     #quantidade;
 
     constructor(nome, preco, quantidade) {
-        // Novo: Desafio 1 
-        if (nome == "") {
+        if (!nome || nome.trim() === "") {
             throw new Error("O nome não pode ficar em branco!");
         }
-        if (preco <= 0) {
-            throw new Error("O preço tem que ser maior que zero!");
+        if (preco <= 0 || isNaN(preco)) {
+            throw new Error("O preço tem que ser um número maior que zero!");
         }
-        if (quantidade <= 0) {
-            throw new Error("A quantidade tem que ser maior que zero!");
+        if (quantidade <= 0 || isNaN(quantidade)) {
+            throw new Error("A quantidade tem que ser um número maior que zero!");
         }
 
-        this.nome = nome;
+        this.nome = nome.trim();
         this.#preco = parseFloat(preco);
         this.#quantidade = parseInt(quantidade);
     }
 
-    // Novo: Desafio 1 
     get preco() {
         return this.#preco;
     }
@@ -32,108 +29,103 @@ class Produto {
         return this.#quantidade;
     }
 
+    // Método que calcula o subtotal do produto
     calcularSubtotal() {
-        // Novo
         return this.#preco * this.#quantidade;
     }
 }
 
 //
-// FASE 2: Gerenciamento de Estado (memória)
+// FASE 2: Gerenciamento de Estado (Memória)
 //
 const listaDeProdutos = [];
 
-//FASE 2.1 Persistencia com localStorage
-//definir uma constante para evitar erros de digitação ao usarmos a chave do localStorage
+//
+// FASE 2.1: Persistência com localStorage
+//
+const CHAVE_STORAGE = "sistema_estoque_produtos";
 
-const CHAVE_STORAGE = "sistema_estoque_produto";
-
-//1. funçao para Salvar os dados no navegador
-
-function salvarNoLocalStorage(){
-    const listaEmTexto = JSON.stringify(listaDeProdutos);
+// 1. Função para SALVAR os dados no navegador
+function salvarNoLocalStorage() {
+    // Mapeamos os objetos para garantir que os valores privados sejam salvos corretamente
+    const dadosParaSalvar = listaDeProdutos.map(prod => ({
+        nome: prod.nome,
+        preco: prod.preco,
+        quantidade: prod.quantidade
+    }));
+    
+    const listaEmTexto = JSON.stringify(dadosParaSalvar);
     localStorage.setItem(CHAVE_STORAGE, listaEmTexto);
 }
 
+// 2. Função para CARREGAR os dados salvos quando a página abrir
+function carregarDoLocalStorage() {
+    const dadosSalvos = localStorage.getItem(CHAVE_STORAGE);
+
+    if (dadosSalvos) {
+        try {
+            const produtosObjetos = JSON.parse(dadosSalvos);
+
+            // Reinstancia cada produto como uma instância de Produto
+            produtosObjetos.forEach((prod) => {
+                const produtoInstanciado = new Produto(prod.nome, prod.preco, prod.quantidade);
+                listaDeProdutos.push(produtoInstanciado);
+            });
+        } catch (erro) {
+            console.error("Erro ao carregar dados do localStorage:", erro);
+        }
+    }
+}
+
 //
-// FASE 3: Escuta de Eventos do DOM
+// FASE 3: Captura de Elementos do DOM
 //
 const formProduto = document.getElementById("produto-form");
+const btnLimparTudo = document.getElementById("limpar-tabela");
+const totalEstoqueEl = document.getElementById("total-estoque");
 
-formProduto.addEventListener("submit", function(event){
+//
+// FASE 4: Escuta de Eventos
+//
+
+// 1. Adicionar Produto pelo Formulário
+formProduto.addEventListener("submit", function (event) {
     event.preventDefault();
 
     const nomeInput = document.getElementById("nome").value;
     const precoInput = document.getElementById("preco").value;
     const quantidadeInput = document.getElementById("quantidade").value;
 
-    // Novo: Desafio 1
     try {
         const novoProduto = new Produto(nomeInput, precoInput, quantidadeInput);
         listaDeProdutos.push(novoProduto);
 
-        renderizarTabela();
-        atualizarTotalEstoque(); // Novo: Desafio 2 
+        // Salva no localStorage e atualiza a interface
+        salvarNoLocalStorage();
+        atualizarInterface();
+        
         formProduto.reset();
     } catch (erro) {
-        alert(erro.message); 
+        alert(erro.message);
     }
 });
 
-// Novo: Desafio 3 
-document.getElementById("limpar-tabela").addEventListener("click", function() {
-    listaDeProdutos.length = 0; 
-    renderizarTabela(); 
-    atualizarTotalEstoque(); 
+// 2. Limpar toda a tabela
+btnLimparTudo.addEventListener("click", function () {
+    if (listaDeProdutos.length === 0) {
+        alert("A tabela já está vazia!");
+        return;
+    }
+
+    if (confirm("Tem certeza que deseja remover todos os produtos?")) {
+        listaDeProdutos.length = 0;
+
+        // Remove a chave do localStorage
+        localStorage.removeItem(CHAVE_STORAGE);
+
+        atualizarInterface();
+    }
 });
-
-
-//
-// FASE 4: Renderização da Interface DOM
-//
-function renderizarTabela() {
-    const tabelaBody = document.querySelector("#tabela-produtos tbody");
-    tabelaBody.innerHTML = "";
-
-    // Novo:
-    listaDeProdutos.forEach(function(produto, index) {
-        const linha = document.createElement("tr");
-
-        // Novo: Desafio 3
-        linha.innerHTML = `
-            <td>${produto.nome}</td>
-            <td>R$ ${produto.preco.toFixed(2)}</td>
-            <td>${produto.quantidade}</td>
-            <td>R$ ${produto.calcularSubtotal().toFixed(2)}</td>
-            <td>
-                <button class="btn-remover" onclick="removerProduto(${index})">Remover</button>
-            </td>
-        `;
-
-        tabelaBody.appendChild(linha);
-    });
-}
-
-//
-
-// Novo: Desafio 2 
-function atualizarTotalEstoque() {
-    const total = listaDeProdutos.reduce(function(acumulador, produto) {
-        return acumulador + produto.calcularSubtotal();
-    }, 0); 
-
-    document.getElementById("total-estoque").innerText = "Total em Estoque: R$ " + total.toFixed(2);
-}
-
-// Novo: Desafio 3 
-function removerProduto(index) {
-   
-    listaDeProdutos.splice(index, 1);
-    
-    
-    renderizarTabela();
-    atualizarTotalEstoque();
-}
 
 //
 // FASE 5: Funções de Atualização e Renderização da Interface
@@ -143,7 +135,7 @@ function removerProduto(index) {
 function removerProduto(index) {
     listaDeProdutos.splice(index, 1);
 
-    // 🆕 Salva a nova lista (sem o item removido) no localStorage
+    // Salva a nova lista (sem o item removido) no localStorage
     salvarNoLocalStorage();
 
     atualizarInterface();
@@ -161,7 +153,6 @@ function atualizarTotalEstoque() {
 // Função responsável por re-desenhar a tabela
 function renderizarTabela() {
     const tabelaBody = document.querySelector("#tabela-produtos tbody");
-
     tabelaBody.innerHTML = "";
 
     listaDeProdutos.forEach((produto, index) => {
@@ -191,9 +182,7 @@ function atualizarInterface() {
 }
 
 //
-// 🆕 FASE 6: Inicialização da Aplicação
+// FASE 6: Inicialização da Aplicação
 //
-// Ao carregar o script pela primeira vez, restaura os dados do localStorage
-// e atualiza a interface gráfica.
 carregarDoLocalStorage();
 atualizarInterface();
